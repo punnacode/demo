@@ -1,4 +1,4 @@
-module models
+module github.com/punnacode/demo
 
 go 1.22.5
 
