@@ -10,8 +10,11 @@ import (
 )
 
 // Initialize Firestore client
-func InitFirestore(ctx context.Context, keyFile string) (*firestore.Client, error) {
-	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsFile(keyFile))
+func InitFirestore(ctx context.Context, keyFile string, projectID string) (*firestore.Client, error) {
+	conf := &firebase.Config{
+		ProjectID: projectID,
+	}
+	app, err := firebase.NewApp(ctx, conf, option.WithCredentialsFile(keyFile))
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +25,6 @@ func InitFirestore(ctx context.Context, keyFile string) (*firestore.Client, erro
 	}
 	return client, nil
 }
-
 // Add a new Meal document
 func AddMeal(ctx context.Context, client *firestore.Client, mid int, plannerID string, mealType string, dishID string) (string, error) {
 	data := map[string]interface{}{
