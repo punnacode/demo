@@ -2,19 +2,18 @@ package models
 
 import (
 	"context"
+	"fmt"
 
 	"cloud.google.com/go/firestore"
 	"firebase.google.com/go/v4"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// Initialize Firestore client
-func InitFirestore(ctx context.Context, keyFile string, projectID string) (*firestore.Client, error) {
-	conf := &firebase.Config{
-		ProjectID: projectID,
-	}
-	app, err := firebase.NewApp(ctx, conf, option.WithCredentialsFile(keyFile))
+func InitFirestore(ctx context.Context, keyFile string) (*firestore.Client, error) {
+	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsFile(keyFile))
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +24,7 @@ func InitFirestore(ctx context.Context, keyFile string, projectID string) (*fire
 	}
 	return client, nil
 }
-// Add a new Meal document
+
 func AddMeal(ctx context.Context, client *firestore.Client, mid int, plannerID string, mealType string, dishID string) (string, error) {
 	data := map[string]interface{}{
 		"mid":     mid,
@@ -40,7 +39,6 @@ func AddMeal(ctx context.Context, client *firestore.Client, mid int, plannerID s
 	return docRef.ID, nil
 }
 
-// Add a new Food document
 func AddFood(ctx context.Context, client *firestore.Client, fid int, name string, mealType string) (string, error) {
 	data := map[string]interface{}{
 		"fid":  fid,
@@ -54,7 +52,6 @@ func AddFood(ctx context.Context, client *firestore.Client, fid int, name string
 	return docRef.ID, nil
 }
 
-// Add a new Planner document
 func AddPlanner(ctx context.Context, client *firestore.Client, pid int, userID int, planName string, createdAt string) (string, error) {
 	data := map[string]interface{}{
 		"pid":       pid,
@@ -69,7 +66,6 @@ func AddPlanner(ctx context.Context, client *firestore.Client, pid int, userID i
 	return docRef.ID, nil
 }
 
-// Retrieve all documents from a collection
 func RetrieveDocuments(ctx context.Context, client *firestore.Client, collection string) ([]map[string]interface{}, error) {
 	var results []map[string]interface{}
 	iter := client.Collection(collection).Documents(ctx)
@@ -84,4 +80,25 @@ func RetrieveDocuments(ctx context.Context, client *firestore.Client, collection
 		results = append(results, doc.Data())
 	}
 	return results, nil
+}
+
+func GetDocument(ctx context.Context, client *firestore.Client, collection string, docID string) (map[string]interface{}, error) {
+	doc, err := client.Collection(collection).Doc(docID).Get(ctx)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil, fmt.Errorf("document with ID %s not found", docID)
+		}
+		return nil, err
+	}
+	return doc.Data(), nil
+}
+
+func UpdateDocument(ctx context.Context, client *firestore.Client, collection string, docID string, updates map[string]interface{}) error {
+	_, err := client.Collection(collection).Doc(docID).Set(ctx, updates, firestore.MergeAll)
+	return err
+}
+
+func DeleteDocument(ctx context.Context, client *firestore.Client, collection string, docID string) error {
+	_, err := client.Collection(collection).Doc(docID).Delete(ctx)
+	return err
 }
